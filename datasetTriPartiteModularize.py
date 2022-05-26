@@ -1,9 +1,11 @@
+import sys
 import random
 import torch
 import re
 import glob
 import time
 import convertTree
+import argparse
 import numpy as np
 from queue import Queue
 from torch_geometric.data import Data
@@ -203,7 +205,7 @@ def setData(ind, totVertex, gLTL, dictK, sourceTrans, destTrans, label, indexLTL
     data = Data(x=node_features, edge_index=edge_index)
     data_list.append([data, gLTL, label])
 
-def datasetConstruct(fltl, BAset, numneg = 1):
+def datasetConstruct(fltl, BAset,saveName, numneg = 1):
     distribution()
     ltlTree(fltl)
     fYes = open("yesPairs","w")
@@ -402,10 +404,23 @@ def datasetConstruct(fltl, BAset, numneg = 1):
     timeperGraph = totalTime/len(arrFilesBA)
     print("LTL diverse graph: ",ltlTime)
     print("Time per Short graph: ",timeperGraph)
-    #torch.save(data_list,'syntheticDatasetNoNegShortTripartite.pt')
+    torch.save(data_list,saveName)
 
         
 
 
-datasetConstruct('LTLset/ltldiverseparan_removedFalse_modifiedUnique','BADiverseUnique/*',1)
+if __name__ == "__main__":
+    
+
+    parser = argparse.ArgumentParser('Interface for GNN Datasets')
+
+    # general model and training setting
+    parser.add_argument('--spec', type=str, default='LTLset/ltldiverseparan_removedFalse_modifiedUnique', help='dataset name')
+    parser.add_argument('--system', type=str, default='BADiverseUnique/*', help='automata path')
+    parser.add_argument('--savename', type=str, default='Diverse.pt', help='automata path')
+    parser.add_argument('--numneg', type=int, default=1, help='number of negative samples per spec.')
+    
+    args = parser.parse_args()
+
+    datasetConstruct(args.spec,args.system,args.savename,args.numneg)
 
