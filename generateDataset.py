@@ -12,6 +12,8 @@ from torch_geometric.data import Data
 import copy
 
 data_list = []
+data_listOne = []
+data_listZero = []
 data_listLTL = []
 datalen_LTL = []
 listalphs = np.ones(26)
@@ -203,13 +205,15 @@ def setData(ind, totVertex, gLTL, dictK, sourceTrans, destTrans, label, indexLTL
     node_features = torch.tensor(v_matt)
     edge_index = torch.tensor([sourceTrans, destTrans], dtype=torch.long)
     data = Data(x=node_features, edge_index=edge_index)
-    data_list.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, len(data_list)])
+    #append as per label
+    if(label == 1):
+        data_listOne.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, len(data_list)])
+    else:
+        data_listZero.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, len(data_list)])
 
-def datasetConstruct(fltl, BAset,saveName, numneg = 1):
+def datasetConstruct(BAset, label):
     #distribution()
-    ltlTree(fltl)
-    fYes = open("yesPairs","w")
-    fNo = open("noPairs","w")
+    
     baNames = []
     arrFilesBA =  glob.glob(BAset)
     iniSet = np.zeros((10000), dtype = int)
@@ -219,17 +223,10 @@ def datasetConstruct(fltl, BAset,saveName, numneg = 1):
     localBATime = 0
     arrFilesBA.sort(key=lambda var:[int(x) if x.isdigit() else x for x in re.findall(r'[^0-9]|[0-9]+', var)])
     outl = -1
-    print(len(arrFilesBA))
+    print("Total length: ",len(arrFilesBA))
     for filen in arrFilesBA:
         outl += 1
         idneg = 0
-        falseSet = []
-        for i in range(numneg):
-            idx = random.randint(0, len(arrFilesBA) - 1)
-            while(idx == outl):
-                idx = random.randint(0, len(arrFilesBA) - 1)
-            falseSet.append(data_listLTL[idx])
-            idneg = idx
         file1 = open(filen,"r")
         sTrans = []
         dTrans = []
@@ -240,7 +237,6 @@ def datasetConstruct(fltl, BAset,saveName, numneg = 1):
         vSet = []
         apList = np.zeros(27, dtype=int)
         gLTLTrue = data_listLTL[outl]
-
         Lines = file1.readlines()
         count = 0
         final_ind = 0
@@ -370,50 +366,16 @@ def datasetConstruct(fltl, BAset,saveName, numneg = 1):
 
         sTrans, dTrans = setTwoThreeOnes(sTrans, dTrans, indk, dictP, gLTLTrue)
         sTrans, dTrans = setTwoThreeOnesZero(sTrans, dTrans, dictP, gLTLTrue, v, indk)
-        setData(indk, totVertexp, gLTLTrue, dictP, sTrans, dTrans, 1, indk,outl + 1)
+        setData(indk, totVertexp, gLTLTrue, dictP, sTrans, dTrans, label, indk,outl + 1)
 
-        localBATime += (time.time() - startBA) 
-        #print("Positive Vertex bipartite BA: ", indk, " total: ", totVertexp, " ltl positive: ", len(gLTLTrue.x))
-        fYes.write(ltlformlist[outl])
-        fYes.write("\n")
-        fYes.write(baNames[-1])
-        fYes.write("\n\n")
+        #localBATime += (time.time() - startBA) 
 
-        fNo.write(ltlformlist[idneg])
-        fNo.write("\n")
-        fNo.write(baNames[-1])
-        fNo.write("\n\n")
-
-        for gLTLFalse in falseSet:
-            print("negative outl: ",outl)
-            sTransn = []
-            dTransn= []
-            for element in sTransref:
-                sTransn.append(element)
-            for element in dTransref:
-                dTransn.append(element)
-            
-            for indI in range(len(gLTLFalse.edge_index[0])):
-                sTransn.append(gLTLFalse.edge_index[0][indI].item() + est)
-                dTransn.append(gLTLFalse.edge_index[1][indI].item() + est)
-
-            sTransn, dTransn = setTwoThreeOnes(sTransn, dTransn, indk, dictN, gLTLFalse)
-            sTransn, dTransn = setTwoThreeOnesZero(sTransn, dTransn, dictN, gLTLFalse, v, indk)
-            totVertexn = est + len(gLTLFalse.x)
-            #print("Negative Vertex bipartite BA: ", indk, " total: ", totVertexn, " ltl negative: ", len(gLTLFalse.x))
-            setData(indk, totVertexn, gLTLFalse, dictN, sTransn, dTransn, 0, indk,idneg)
-
-        print("\n\n")
+        
         file1.close()
-    print(len(data_list))
-    fYes.close()
-    fNo.close()
-    BATime = localBATime
-    totalTime = ltlTime + BATime
-    timeperGraph = totalTime/len(arrFilesBA)
-    print("LTL diverse graph: ",ltlTime)
-    print("Time per Short graph: ",timeperGraph)
-    torch.save(data_list,saveName)
+    #BATime = localBATime
+    #totalTime = ltlTime + BATime
+    #timeperGraph = totalTime/len(arrFilesBA)
+    
 
         
 
@@ -424,12 +386,27 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Interface for GNN Datasets')
 
     # general model and training setting
-    parser.add_argument('--spec', type=str, default='LTLset/ltlres19parannnf', help='dataset name')
-    parser.add_argument('--system', type=str, default='BARes/*', help='automata path')
-    parser.add_argument('--savename', type=str, default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/RERS.pt', help='automata path')
-    parser.add_argument('--numneg', type=int, default=1, help='number of negative samples per spec.')
+    parser.add_argument('--spec', type=str, default='ShortLTL/equivalentnnf_final.txt', help='dataset name')
+    parser.add_argument('--systemequiv', type=str, default='ShortBA/Equivalent/*', help='automata path')
+    parser.add_argument('--systemimply', type=str, default='ShortBA/Imply/*', help='automata path')
+    parser.add_argument('--systemnoOne', type=str, default='ShortBA/NegativeOne/*', help='automata path')
+    parser.add_argument('--systemnoTwo', type=str, default='ShortBA/NegativeTwo/*', help='automata path')
+    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/Short.pt', help='automata path')
+
     
     args = parser.parse_args()
-
-    datasetConstruct(args.spec,args.system,args.savename,args.numneg)
+    #construct the tree first
+    ltlTree(args.spec)
+    #move to the BA LTL mapping
+    datasetConstruct(args.systemequiv,1)
+    datasetConstruct(args.systemimply,1)
+    datasetConstruct(args.systemnoOne,0)
+    datasetConstruct(args.systemnoTwo,0)
+    #iterate through lists One and Zero
+    for ind in range(len(data_listOne)):
+        data_list.append(data_listOne[ind])
+        data_list.append(data_listZero[ind])
+    print("Length of the dataset: ",len(data_list))    
+    #here - save in the datalist
+    torch.save(data_list,args.savename)
 
