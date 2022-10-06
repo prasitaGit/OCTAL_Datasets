@@ -14,8 +14,8 @@ import copy
 data_list = []
 data_listLTL = []
 datalen_LTL = []
-listalphs = np.zeros(26)
-listop = np.zeros(9)
+listalphs = np.ones(26)
+listop = np.ones(9)
 ltlTime = 0
 BATime = 0
 ltlformlist = []
@@ -203,10 +203,10 @@ def setData(ind, totVertex, gLTL, dictK, sourceTrans, destTrans, label, indexLTL
     node_features = torch.tensor(v_matt)
     edge_index = torch.tensor([sourceTrans, destTrans], dtype=torch.long)
     data = Data(x=node_features, edge_index=edge_index)
-    data_list.append([data, gLTL, label])
+    data_list.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, len(data_list)])
 
 def datasetConstruct(fltl, BAset,saveName, numneg = 1):
-    distribution()
+    #distribution()
     ltlTree(fltl)
     fYes = open("yesPairs","w")
     fNo = open("noPairs","w")
@@ -364,6 +364,10 @@ def datasetConstruct(fltl, BAset,saveName, numneg = 1):
         for element in dTrans:
             dTransref.append(element)
 
+        for indI in range(len(gLTLTrue.edge_index[0])):
+            sTrans.append(gLTLTrue.edge_index[0][indI].item() + est)
+            dTrans.append(gLTLTrue.edge_index[1][indI].item() + est)
+
         sTrans, dTrans = setTwoThreeOnes(sTrans, dTrans, indk, dictP, gLTLTrue)
         sTrans, dTrans = setTwoThreeOnesZero(sTrans, dTrans, dictP, gLTLTrue, v, indk)
         setData(indk, totVertexp, gLTLTrue, dictP, sTrans, dTrans, 1, indk,outl + 1)
@@ -388,6 +392,11 @@ def datasetConstruct(fltl, BAset,saveName, numneg = 1):
                 sTransn.append(element)
             for element in dTransref:
                 dTransn.append(element)
+            
+            for indI in range(len(gLTLFalse.edge_index[0])):
+                sTransn.append(gLTLFalse.edge_index[0][indI].item() + est)
+                dTransn.append(gLTLFalse.edge_index[1][indI].item() + est)
+
             sTransn, dTransn = setTwoThreeOnes(sTransn, dTransn, indk, dictN, gLTLFalse)
             sTransn, dTransn = setTwoThreeOnesZero(sTransn, dTransn, dictN, gLTLFalse, v, indk)
             totVertexn = est + len(gLTLFalse.x)
@@ -415,9 +424,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Interface for GNN Datasets')
 
     # general model and training setting
-    parser.add_argument('--spec', type=str, default='LTLset/ltldiverseparan_removedFalse_modifiedUnique', help='dataset name')
-    parser.add_argument('--system', type=str, default='BADiverseUnique/*', help='automata path')
-    parser.add_argument('--savename', type=str, default='Diverse.pt', help='automata path')
+    parser.add_argument('--spec', type=str, default='LTLset/ltlres19parannnf', help='dataset name')
+    parser.add_argument('--system', type=str, default='BARes/*', help='automata path')
+    parser.add_argument('--savename', type=str, default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/RERS.pt', help='automata path')
     parser.add_argument('--numneg', type=int, default=1, help='number of negative samples per spec.')
     
     args = parser.parse_args()
