@@ -327,7 +327,7 @@ def datasetConstruct(BAset, label):
                     counEdge += 1
 
         if(len(vSet) == 0):
-            print(filen)
+            print("HERE???: ",filen)
             continue
         v =vSet[-1]
         initial_s = iniSet[outl]
@@ -386,12 +386,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Interface for GNN Datasets')
 
     # general model and training setting
-    parser.add_argument('--spec', type=str, default='ShortLTL/equivalentnnf_final.txt', help='dataset name')
-    parser.add_argument('--systemequiv', type=str, default='ShortBA/Equivalent/*', help='automata path')
-    parser.add_argument('--systemimply', type=str, default='ShortBA/Imply/*', help='automata path')
-    parser.add_argument('--systemnoOne', type=str, default='ShortBA/NegativeOne/*', help='automata path')
-    parser.add_argument('--systemnoTwo', type=str, default='ShortBA/NegativeTwo/*', help='automata path')
-    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/Short.pt', help='automata path')
+    parser.add_argument('--spec', type=str, default='ShortSpecNNFFinal/equivalentnnf.txt', help='dataset name')
+    parser.add_argument('--systemequiv', type=str, default='ShortBAOCTAL/Equivalent/*', help='automata path')
+    parser.add_argument('--systemimply', type=str, default='ShortBAOCTAL/Imply/*', help='automata path')
+    parser.add_argument('--systemnoOne', type=str, default='ShortBAOCTAL/NegativeOne/*', help='automata path')
+    parser.add_argument('--systemnoTwo', type=str, default='ShortBAOCTAL/NegativeTwo/*', help='automata path')
+    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/ShortOCTAL.pt', help='automata path')
 
     
     args = parser.parse_args()
