@@ -51,7 +51,7 @@ def ltlTree(fltl):
         sourceLTL = np.zeros(1000, dtype=int)
         destLTL = np.zeros(1000, dtype=int)
         # max number of nodess assumed as 1000
-        vmatt = np.zeros((1000, 64), dtype=float)
+        vmatt = np.zeros((1000, 66), dtype=float)
         edgecount = 0
         maxid = 0
         queue = Queue()  # todo bfs
@@ -122,7 +122,7 @@ def ltlTree(fltl):
         if (maxlen < maxid):
             maxlen = maxid
         #print("length: ", maxid)
-        l_matt = np.ones((maxid, 64), dtype=float)
+        l_matt = np.ones((maxid, 66), dtype=float)
         for ind in range(maxid):
             l_matt[ind] = vmatt[ind]
         ltl_features = torch.tensor(l_matt)
@@ -137,66 +137,9 @@ def ltlTree(fltl):
         fileltl.close()
 
         
-def setTwoThreeOnes(source, dest, ind, dicL, gLTL):
-    #i + 1 == 1 or i + 27 == 1
-    for i in range(26):
-        vEdgeBA = [index for index in dicL if dicL[index][i + 1] != 0 or dicL[index][i + 27] != 0] 
-        vEdgeLTL = [index + ind for index in range(len(gLTL.x)) if gLTL.x[index][i + 1] != 0 or gLTL.x[index][i + 27] != 0]
-        for vBA in vEdgeBA:
-            for eBA in vEdgeLTL:
-                source.append(vBA)
-                dest.append(eBA)
-                source.append(eBA)
-                dest.append(vBA)
-
-    return source,dest
-
-def setTwoThreeOnesZero(source,dest,dicL,gLTL,v,ind):
-    # true case only -> consider edges
-    vEdgeBA = [index for index in dicL if dicL[index][0] != 0]
-    vEdgeLTL = [index + ind for index in range(len(gLTL.x)) if gLTL.x[index][0] != 0]
-    for vBA in vEdgeBA:
-        for eBA in vEdgeLTL:
-            source.append(vBA)
-            dest.append(eBA)
-            source.append(eBA)
-            dest.append(vBA)
-    return source,dest
-
-def setTwoThree(source, dest, ind, dicL, gLTL):
-
-    for i in range(26):
-        vEdgeBA = [index for index in dicL if listalphs[i] in dicL[index]]
-        vEdgeLTL = [index + ind for index in range(len(gLTL.x)) if listalphs[i] in gLTL.x[index]]
-        for vBA in vEdgeBA:
-            for eBA in vEdgeLTL:
-                source.append(vBA)
-                dest.append(eBA)
-                source.append(eBA)
-                dest.append(vBA)
-
-    return source,dest
-
-def setTwoThreeZero(source,dest,dicL,gLTL,v,ind):
-    # true case only -> consider edges
-    vEdgeBA = [index for index in dicL if 1 in dicL[index] and index >= v]
-    vEdgeLTL = [index + ind for index in range(len(gLTL.x)) if 1 in gLTL.x[index]]
-    for vBA in vEdgeBA:
-        for eBA in vEdgeLTL:
-            source.append(vBA)
-            dest.append(eBA)
-            source.append(eBA)
-            dest.append(vBA)
-    return source,dest
-
-
 def setData(ind, totVertex, gLTL, dictK, sourceTrans, destTrans, label, indexLTL, gnum):
     dictL = copy.deepcopy(dictK)
-    while (ind < totVertex):
-        dictL[ind] = gLTL.x[ind - indexLTL]
-        ind += 1
-
-    v_matt = np.zeros((totVertex, 64), dtype=float)
+    v_matt = np.zeros((totVertex, 66), dtype=float)
     for i in range(totVertex):
         v_matt[i] = dictL[i]
     node_features = torch.tensor(v_matt)
@@ -287,8 +230,8 @@ def datasetConstruct(BAset, label):
                 dest = int(destComp[1])
                 numComp = arrComp[0].split("|")
                 for lpar in range(len(numComp)):
-                    vAttp = np.zeros(64, dtype=float)
-                    vAttn = np.zeros(64, dtype=float)
+                    vAttp = np.zeros(66, dtype=float)
+                    vAttn = np.zeros(66, dtype=float)
                     edge_comp = numComp[lpar]
                     for ind_edge in range(len(edge_comp)):
                         if(edge_comp[ind_edge].isdigit()):
@@ -304,10 +247,10 @@ def datasetConstruct(BAset, label):
                             vAttp[0] = 1
                             vAttn[0] = 1
                     #add edge from st to est, and dest to est and vice versa
-                    #vAttp[64] = st
-                    #vAttp[65] = dest
-                    #vAttn[64] = st
-                    #vAttn[65] = dest
+                    vAttp[64] = st
+                    vAttp[65] = dest
+                    vAttn[64] = st
+                    vAttn[65] = dest
                     sTrans.append(st)
                     dTrans.append(est)
                     sTrans.append(est)
@@ -332,7 +275,7 @@ def datasetConstruct(BAset, label):
         coun += 1
         checkAssign = False
         for i in range(v):
-            vAttp = np.zeros(64, dtype=float)
+            vAttp = np.zeros(66, dtype=float)
             #encode in all states
             #final and initial (11)
             if(i == initial_s and (i in finset[outl]) == True):
@@ -347,21 +290,8 @@ def datasetConstruct(BAset, label):
             dictP[i] = vAttp
             dictN[i] = vAttp
         indk = est
-        totVertexp = est + len(gLTLTrue.x)
-        #reference to copy
-        sTransref = []
-        dTransref = []
-        for element in sTrans:
-            sTransref.append(element)
-        for element in dTrans:
-            dTransref.append(element)
+        totVertexp = est
 
-        for indI in range(len(gLTLTrue.edge_index[0])):
-            sTrans.append(gLTLTrue.edge_index[0][indI].item() + est)
-            dTrans.append(gLTLTrue.edge_index[1][indI].item() + est)
-
-        sTrans, dTrans = setTwoThreeOnes(sTrans, dTrans, indk, dictP, gLTLTrue)
-        sTrans, dTrans = setTwoThreeOnesZero(sTrans, dTrans, dictP, gLTLTrue, v, indk)
         setData(indk, totVertexp, gLTLTrue, dictP, sTrans, dTrans, label, indk,outl + 1)
 
         #localBATime += (time.time() - startBA) 
@@ -382,26 +312,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Interface for GNN Datasets')
 
     # general model and training setting
-    parser.add_argument('--spec', type=str, default='RERSSpecNNFFinal/equivalentnnf.txt', help='dataset name')
-    parser.add_argument('--systemequiv', type=str, default='RERSBA/Equivalent/*', help='automata path')
-    parser.add_argument('--systemimply', type=str, default='RERSBA/Imply/*', help='automata path')
-    parser.add_argument('--systemnoOne', type=str, default='RERSBA/NegativeOne/*', help='automata path')
-    parser.add_argument('--systemnoTwo', type=str, default='RERSBA/NegativeTwo/*', help='automata path')
-    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/Short.pt', help='automata path')
+    parser.add_argument('--spec', type=str, default='ShortSpecNNFFinal/equivalentnnf.txt', help='dataset name')
+    parser.add_argument('--systemequiv', type=str, default='ShortBAOCTAL/Equivalent/*', help='automata path')
+    parser.add_argument('--systemimply', type=str, default='ShortBAOCTAL/Imply/*', help='automata path')
+    parser.add_argument('--systemnoOne', type=str, default='ShortBAOCTAL/NegativeOne/*', help='automata path')
+    parser.add_argument('--systemnoTwo', type=str, default='ShortBAOCTAL/NegativeTwo/*', help='automata path')
+    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/ShortLinkDirectedSpcl.pt', help='automata path')
 
     
     args = parser.parse_args()
     #construct the tree first
-    start = time.time()
+    #start = time.time()
     ltlTree(args.spec)
     #move to the BA LTL mapping
     datasetConstruct(args.systemequiv,1)
-    datasetConstruct(args.systemimply,1)
+    #datasetConstruct(args.systemimply,1)
     datasetConstruct(args.systemnoOne,0)
-    datasetConstruct(args.systemnoTwo,0)
+    #datasetConstruct(args.systemnoTwo,0)
     evalTime = time.time()
-    print("Total construction time: ",(evalTime - start))
-    exit()
+    #print("Total construction time: ",(evalTime - start))
+    #exit()
     #iterate through lists One and Zero
     for ind in range(len(data_listOne)):
         data_list.append(data_listOne[ind])

@@ -10,6 +10,7 @@ import numpy as np
 from queue import Queue
 from torch_geometric.data import Data
 import copy
+import pdb
 
 data_list = []
 data_listOne = []
@@ -20,7 +21,7 @@ listalphs = np.ones(26)
 listop = np.ones(9)
 ltlTime = 0
 BATime = 0
-countGID = 0
+gCount = 0
 ltlformlist = []
 
 def distribution():
@@ -51,7 +52,7 @@ def ltlTree(fltl):
         sourceLTL = np.zeros(1000, dtype=int)
         destLTL = np.zeros(1000, dtype=int)
         # max number of nodess assumed as 1000
-        vmatt = np.zeros((1000, 64), dtype=float)
+        vmatt = np.zeros((1000, 66), dtype=float)
         edgecount = 0
         maxid = 0
         queue = Queue()  # todo bfs
@@ -122,7 +123,7 @@ def ltlTree(fltl):
         if (maxlen < maxid):
             maxlen = maxid
         #print("length: ", maxid)
-        l_matt = np.ones((maxid, 64), dtype=float)
+        l_matt = np.ones((maxid, 66), dtype=float)
         for ind in range(maxid):
             l_matt[ind] = vmatt[ind]
         ltl_features = torch.tensor(l_matt)
@@ -190,13 +191,15 @@ def setTwoThreeZero(source,dest,dicL,gLTL,v,ind):
     return source,dest
 
 
-def setData(ind, totVertex, gLTL, dictK, sourceTrans, destTrans, label, indexLTL, gnum):
+def setData(ind, totVertex, gLTL, dictK, sourceTrans, destTrans, label, indexLTL, gnum, ltlSys, ltlSpec):
+    global gCount
+    gCount += 1
     dictL = copy.deepcopy(dictK)
     while (ind < totVertex):
         dictL[ind] = gLTL.x[ind - indexLTL]
         ind += 1
 
-    v_matt = np.zeros((totVertex, 64), dtype=float)
+    v_matt = np.zeros((totVertex, 66), dtype=float)
     for i in range(totVertex):
         v_matt[i] = dictL[i]
     node_features = torch.tensor(v_matt)
@@ -204,11 +207,11 @@ def setData(ind, totVertex, gLTL, dictK, sourceTrans, destTrans, label, indexLTL
     data = Data(x=node_features, edge_index=edge_index)
     #append as per label
     if(label == 1):
-        data_listOne.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, len(data_list)])
+        data_listOne.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, gCount,ltlSys,ltlSpec])
     else:
-        data_listZero.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, len(data_list)])
+        data_listZero.append([data, gLTL, label, totVertex, len(sourceTrans), indexLTL, gCount,ltlSys,ltlSpec])
 
-def datasetConstruct(BAset, label):
+def datasetConstruct(BAset,ltlSystem,ltlSpec, label):
     #distribution()
     
     baNames = []
@@ -287,8 +290,8 @@ def datasetConstruct(BAset, label):
                 dest = int(destComp[1])
                 numComp = arrComp[0].split("|")
                 for lpar in range(len(numComp)):
-                    vAttp = np.zeros(64, dtype=float)
-                    vAttn = np.zeros(64, dtype=float)
+                    vAttp = np.zeros(66, dtype=float)
+                    vAttn = np.zeros(66, dtype=float)
                     edge_comp = numComp[lpar]
                     for ind_edge in range(len(edge_comp)):
                         if(edge_comp[ind_edge].isdigit()):
@@ -304,10 +307,11 @@ def datasetConstruct(BAset, label):
                             vAttp[0] = 1
                             vAttn[0] = 1
                     #add edge from st to est, and dest to est and vice versa
-                    #vAttp[64] = st
-                    #vAttp[65] = dest
-                    #vAttn[64] = st
-                    #vAttn[65] = dest
+                    #this is for directed
+                    vAttp[64] = st
+                    vAttp[65] = dest
+                    vAttn[64] = st
+                    vAttn[65] = dest
                     sTrans.append(st)
                     dTrans.append(est)
                     sTrans.append(est)
@@ -332,7 +336,7 @@ def datasetConstruct(BAset, label):
         coun += 1
         checkAssign = False
         for i in range(v):
-            vAttp = np.zeros(64, dtype=float)
+            vAttp = np.zeros(66, dtype=float)
             #encode in all states
             #final and initial (11)
             if(i == initial_s and (i in finset[outl]) == True):
@@ -362,7 +366,7 @@ def datasetConstruct(BAset, label):
 
         sTrans, dTrans = setTwoThreeOnes(sTrans, dTrans, indk, dictP, gLTLTrue)
         sTrans, dTrans = setTwoThreeOnesZero(sTrans, dTrans, dictP, gLTLTrue, v, indk)
-        setData(indk, totVertexp, gLTLTrue, dictP, sTrans, dTrans, label, indk,outl + 1)
+        setData(indk, totVertexp, gLTLTrue, dictP, sTrans, dTrans, label, indk,outl + 1,ltlSystem[outl],ltlSpec[outl])
 
         #localBATime += (time.time() - startBA) 
 
@@ -387,26 +391,35 @@ if __name__ == "__main__":
     parser.add_argument('--systemimply', type=str, default='RERSBA/Imply/*', help='automata path')
     parser.add_argument('--systemnoOne', type=str, default='RERSBA/NegativeOne/*', help='automata path')
     parser.add_argument('--systemnoTwo', type=str, default='RERSBA/NegativeTwo/*', help='automata path')
-    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/Short.pt', help='automata path')
+    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/RERSDirected.pt', help='automata path')
 
-    
+    ltlequiv = []
+    ltlimply = []
+    ltlnegOne = []
+    ltlnegTwo = []
+    with open("RERSSpecNNFFinal/equivalentnnf.txt") as fSpec, open("RERSSpecNNFFinal/implynnf.txt") as fImply, open("RERSSpecNNFFinal/noSystemOnennf.txt") as fNoOne, open("RERSSpecNNFFinal/noSystemTwonnf.txt") as fNoTwo:
+        for spec in fSpec:
+            ltlequiv.append(spec)
+            ltlimply.append(fImply.readline())
+            ltlnegOne.append(fNoOne.readline())
+            ltlnegTwo.append(fNoTwo.readline())
     args = parser.parse_args()
     #construct the tree first
     start = time.time()
     ltlTree(args.spec)
     #move to the BA LTL mapping
-    datasetConstruct(args.systemequiv,1)
-    datasetConstruct(args.systemimply,1)
-    datasetConstruct(args.systemnoOne,0)
-    datasetConstruct(args.systemnoTwo,0)
+    datasetConstruct(args.systemequiv,ltlequiv,ltlequiv,1)
+    datasetConstruct(args.systemimply,ltlimply,ltlequiv,1)
+    datasetConstruct(args.systemnoOne,ltlnegOne,ltlequiv,0)
+    datasetConstruct(args.systemnoTwo,ltlnegTwo,ltlequiv,0)
     evalTime = time.time()
     print("Total construction time: ",(evalTime - start))
-    exit()
     #iterate through lists One and Zero
     for ind in range(len(data_listOne)):
         data_list.append(data_listOne[ind])
         data_list.append(data_listZero[ind])
-    print("Length of the dataset: ",len(data_list))    
+    print("Length of the dataset: ",len(data_list))
+
     #here - save in the datalist
     torch.save(data_list,args.savename)
 
