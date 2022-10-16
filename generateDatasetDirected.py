@@ -386,20 +386,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Interface for GNN Datasets')
 
     # general model and training setting
-    parser.add_argument('--spec', type=str, default='RERSSpecNNFFinal/equivalentnnf.txt', help='dataset name')
-    parser.add_argument('--systemequiv', type=str, default='RERSBA/Equivalent/*', help='automata path')
-    parser.add_argument('--systemimply', type=str, default='RERSBA/Imply/*', help='automata path')
-    parser.add_argument('--systemnoOne', type=str, default='RERSBA/NegativeOne/*', help='automata path')
-    parser.add_argument('--systemnoTwo', type=str, default='RERSBA/NegativeTwo/*', help='automata path')
-    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/RERSDirected.pt', help='automata path')
+    parser.add_argument('--spec', type=str, default='SynthSpecHalfNNF/equivalentnnf.txt', help='dataset name')
+    parser.add_argument('--systemequiv', type=str, default='SynthHalfMC/Equivalent/*', help='automata path')
+    parser.add_argument('--systemimply', type=str, default='SynthHalfMC/Imply/*', help='automata path')
+    parser.add_argument('--systemnoOne', type=str, default='SynthHalfMC/NegativeOne/*', help='automata path')
+    parser.add_argument('--systemnoTwo', type=str, default='SynthHalfMC/NegativeTwo/*', help='automata path')
+    parser.add_argument('--savename', type=str,default='/homes/yinht/lfs/Workspace/OCTAL/GNNLTL_NeurIPS_Code/SynthHalfDirected.pt', help='automata path')
 
+    ltlSpec = []
     ltlequiv = []
     ltlimply = []
     ltlnegOne = []
     ltlnegTwo = []
-    with open("RERSSpecNNFFinal/equivalentnnf.txt") as fSpec, open("RERSSpecNNFFinal/implynnf.txt") as fImply, open("RERSSpecNNFFinal/noSystemOnennf.txt") as fNoOne, open("RERSSpecNNFFinal/noSystemTwonnf.txt") as fNoTwo:
+
+    with open("SynthSpecHalfNNF/equivalentnnf.txt") as fSpec, open("SynthSpecHalfNNF/equivnnf.txt") as fSpecEquiv, open("SynthSpecHalfNNF/implynnf.txt") as fImply, open("SynthSpecHalfNNF/noSystemOnennf.txt") as fNoOne, open("SynthSpecHalfNNF/noSystemTwonnf.txt") as fNoTwo:
         for spec in fSpec:
-            ltlequiv.append(spec)
+            ltlSpec.append(spec)
+            ltlequiv.append(fSpecEquiv.readline())
             ltlimply.append(fImply.readline())
             ltlnegOne.append(fNoOne.readline())
             ltlnegTwo.append(fNoTwo.readline())
@@ -408,10 +411,10 @@ if __name__ == "__main__":
     start = time.time()
     ltlTree(args.spec)
     #move to the BA LTL mapping
-    datasetConstruct(args.systemequiv,ltlequiv,ltlequiv,1)
-    datasetConstruct(args.systemimply,ltlimply,ltlequiv,1)
-    datasetConstruct(args.systemnoOne,ltlnegOne,ltlequiv,0)
-    datasetConstruct(args.systemnoTwo,ltlnegTwo,ltlequiv,0)
+    datasetConstruct(args.systemequiv,ltlequiv,ltlSpec,1)
+    datasetConstruct(args.systemimply,ltlimply,ltlSpec,1)
+    datasetConstruct(args.systemnoOne,ltlnegOne,ltlSpec,0)
+    datasetConstruct(args.systemnoTwo,ltlnegTwo,ltlSpec,0)
     evalTime = time.time()
     print("Total construction time: ",(evalTime - start))
     #iterate through lists One and Zero
